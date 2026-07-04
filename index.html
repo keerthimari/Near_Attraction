@@ -185,6 +185,45 @@ html, body{
   z-index:1000 !important;
 }
 
+/* ---------- Selection ring (indicator shown when a place is clicked) ---------- */
+.selection-ring-wrap{ background:transparent !important; border:none !important; }
+.selection-ring{
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  box-sizing:border-box;
+}
+.selection-ring::before,
+.selection-ring::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  box-sizing:border-box;
+}
+/* Steady solid ring so the clicked place is always clearly indicated. */
+.selection-ring::before{
+  width:46px;
+  height:46px;
+  border:3px solid #e53935;
+  background:rgba(229,57,53,0.10);
+  box-shadow:0 0 6px rgba(229,57,53,0.55);
+}
+/* Expanding pulse that radiates outward for extra emphasis. */
+.selection-ring::after{
+  width:46px;
+  height:46px;
+  border:3px solid rgba(229,57,53,0.85);
+  animation:ringPulse 1.6s ease-out infinite;
+}
+@keyframes ringPulse{
+  0%{ width:46px; height:46px; opacity:0.9; }
+  100%{ width:78px; height:78px; opacity:0; }
+}
+
 /* ---------- Unified draggable info panel (all popups) ---------- */
 #infoPanel{
   position:absolute;
@@ -302,12 +341,12 @@ const places = [{"name": "Cholamandal Artists’ Village", "cat": "Sightseeing E
 
 /* Origin for the Directions feature: Anandha Inn Convention Centre & Suites,
    154 S.V. Patel Salai, Puducherry (corrected coordinates). */
-const ANANDHA_INN = { lat: 11.93386, lon: 79.82876 };
+const ANANDHA_INN = { lat: 11.941969, lon: 79.828755 };
 
 /* Shared "Pondicherry view" — used by Complete Tour, In Pondicherry and the
    Reset button. Centred so roughly half the map shows land and half the Bay
    of Bengal (item 6 / item 9). */
-const PONDY_VIEW = { center: [11.928, 79.842], zoom: 13 };
+const PONDY_VIEW = { center: [11.928, 79.842], zoom: 15 };
 
 /* Filter intro popups: header + description (items 10-14). Keyed by the
    internal category value passed to showCat(). */
@@ -395,6 +434,33 @@ places.forEach(p => {
   m.on('click', () => selectPlace(entry));
   markers.push(entry);
 });
+
+/* ---------- Selection ring (indicator shown when a place is clicked) ---------- */
+const ringIcon = L.divIcon({
+  className: 'selection-ring-wrap',
+  html: '<div class="selection-ring"></div>',
+  iconSize: [80, 80],
+  iconAnchor: [40, 40]
+});
+let ringMarker = null;
+
+function showRing(lat, lon){
+  if(!ringMarker){
+    ringMarker = L.marker([lat, lon], {
+      icon: ringIcon,
+      interactive: false,       /* clicks pass through to the place marker */
+      keyboard: false,
+      zIndexOffset: -100         /* sit behind the place marker */
+    });
+  } else {
+    ringMarker.setLatLng([lat, lon]);
+  }
+  ringMarker.addTo(map);
+}
+
+function hideRing(){
+  if(ringMarker) map.removeLayer(ringMarker);
+}
 
 /* ---------- Unified draggable info panel ---------- */
 const infoPanel = document.createElement('div');
@@ -495,6 +561,8 @@ function setActiveMarker(m){
 
 function selectPlace(entry){
   setActiveMarker(entry.marker);
+  // Ring indicator around the clicked place.
+  showRing(entry.data.lat, entry.data.lon);
   // Centre slightly west of the marker so the marker sits on the land side and
   // the panel opens over the sea to the right.
   map.setView([entry.data.lat, entry.data.lon + 0.012], 15, { animate: true });
@@ -513,6 +581,9 @@ const list = document.getElementById('list');
 
 function render(cat){
   list.innerHTML = '';
+  // Clear any previous selection indicator when switching filters.
+  setActiveMarker(null);
+  hideRing();
   const visible = [];
 
   markers.forEach(o => {
@@ -554,6 +625,7 @@ window.showCat = showCat;
 /* ---------- Reset view button (item 9: same as Pondicherry view) ---------- */
 document.getElementById('resetViewBtn').addEventListener('click', function(){
   setActiveMarker(null);
+  hideRing();
   map.setView(PONDY_VIEW.center, PONDY_VIEW.zoom, { animate: true });
   showFilterInfo('All');
 });
