@@ -340,8 +340,14 @@ const places = [{"name": "Cholamandal Artists’ Village", "cat": "Sightseeing E
    ========================================================================= */
 
 /* Origin for the Directions feature: Anandha Inn Convention Centre & Suites,
-   154 S.V. Patel Salai, Puducherry (corrected coordinates). */
-const ANANDHA_INN = { lat: 11.941969, lon: 79.828755 };
+   154 S.V. Patel Salai, Puducherry. Google Maps gives cleaner, more accurate
+   routing when the origin is the hotel's name rather than raw coordinates, so
+   the name is used for the directions link. */
+const ANANDHA_INN = {
+  lat: 11.941969,
+  lon: 79.828755,
+  name: 'Anandha Inn Convention Centre and Suites, Puducherry'
+};
 
 /* Shared "Pondicherry view" — used by Complete Tour, In Pondicherry and the
    Reset button. Centred so roughly half the map shows land and half the Bay
@@ -507,8 +513,11 @@ function showFilterInfo(cat){
 }
 
 function showPlaceInfo(p){
+  // Use the hotel's name (not coordinates) as the origin so Google Maps opens a
+  // clean, accurate directions page. Destination stays as the place's exact
+  // coordinates to point precisely at the marker.
   const dir = 'https://www.google.com/maps/dir/?api=1'
-            + '&origin=' + ANANDHA_INN.lat + ',' + ANANDHA_INN.lon
+            + '&origin=' + encodeURIComponent(ANANDHA_INN.name)
             + '&destination=' + p.lat + ',' + p.lon;
   const html = toParagraphs(p.desc)
              + '<a class="dir-link" href="' + dir + '" target="_blank" rel="noopener">Directions &rsaquo;</a>';
