@@ -19,6 +19,7 @@ html, body{
 #container{
   display:flex;
   height:100%;
+  min-height:520px; /* ensures a usable map height when embedded */
   width:100%;
 }
 
@@ -128,6 +129,7 @@ html, body{
 #map{
   flex:1;
   height:100%;
+  min-height:520px; /* fallback for iframe containers that don't stretch 100% */
 }
 
 /* ---------- Collapse button ---------- */
@@ -690,11 +692,32 @@ document.getElementById('resetViewBtn').addEventListener('click', function(){
 
 
 window.addEventListener('load', () => {
-  setTimeout(() => map.invalidateSize(), 300);
+  setTimeout(() => {
+    map.invalidateSize();
+    try {
+      if(window.google && google.maps && typeof google.maps.event.trigger === 'function'){
+        google.maps.event.trigger(map, 'resize');
+      }
+    } catch(e){}
+
+    // If embedded inside an iframe, suggest a height to the parent window
+    if(window.self !== window.top){
+      const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+    }
+  }, 300);
 });
-// Google Maps
-window.addEventListener('load', () => {
-  google.maps.event.trigger(map, 'resize');
+
+window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible'){
+    setTimeout(() => map.invalidateSize(), 150);
+    if(window.self !== window.top){
+      const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+    }
+  }
 });
 
 /* ---------- Initial load: Complete Tour view + popup (item 11) ---------- */
