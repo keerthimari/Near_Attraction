@@ -688,6 +688,15 @@ document.getElementById('resetViewBtn').addEventListener('click', function(){
   });
 })();
 
+
+window.addEventListener('load', () => {
+  setTimeout(() => map.invalidateSize(), 300);
+});
+// Google Maps
+window.addEventListener('load', () => {
+  google.maps.event.trigger(map, 'resize');
+});
+
 /* ---------- Initial load: Complete Tour view + popup (item 11) ---------- */
 render('All');
 
